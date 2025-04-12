@@ -7,6 +7,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:  # ← 🔥 릴리즈 생성에 필요한 권한 명시
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,7 +18,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # ✅ C# 빌드
+    # ✅ C# 빌드 (Main 함수가 있는 파일만 개별 프로젝트로 빌드)
     - name: Set up .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -38,7 +41,7 @@ jobs:
           fi
         done
 
-    # ✅ C++ 빌드 (Eigen 설치 포함)
+    # ✅ C++ 빌드 (Eigen 포함)
     - name: Install dependencies for C++
       run: |
         sudo apt-get update
@@ -51,7 +54,7 @@ jobs:
           g++ "$file" -I /usr/include/eigen3 -o "build/cpp/$(basename "$file" .cpp)"
         done
 
-    # ✅ Kotlin 설치
+    # ✅ Kotlin 빌드
     - name: Set up Java for Kotlin
       uses: actions/setup-java@v3
       with:
@@ -73,7 +76,7 @@ jobs:
           kotlinc "$file" -include-runtime -d "build/kotlin/$(basename "$file" .kt).jar"
         done
 
-    # ✅ 압축
+    # ✅ 결과 압축
     - name: Zip build results
       run: |
         zip -r build_outputs.zip build/

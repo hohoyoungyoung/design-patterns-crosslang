@@ -15,17 +15,24 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # C# 빌드 (.NET SDK + 기존 csproj 빌드)
+    # C# - 각 파일을 독립적으로 dotnet 빌드
     - name: Set up .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '7.0.x'
 
-    - name: Build C# project
+    - name: Build C# files (independent)
       run: |
-        cd csharp
-        dotnet restore || true  # NuGet 안 쓰면 무시해도 됨
-        dotnet build -o ../build/csharp
+        mkdir -p build/csharp
+        for file in csharp/*.cs; do
+          filename=$(basename "$file" .cs)
+          dotnet new console -o "temp_$filename" --force
+          mv "$file" "temp_$filename/Program.cs"
+          cd "temp_$filename"
+          dotnet build -c Release -o "../build/csharp/$filename"
+          cd ..
+          rm -rf "temp_$filename"
+        done
 
     # C++ 빌드
     - name: Build C++ files
@@ -36,7 +43,7 @@ jobs:
           g++ "$file" -o "build/cpp/$(basename "$file" .cpp)"
         done
 
-    # Kotlin 설치
+    # Kotlin 설정 + 설치
     - name: Set up Java for Kotlin
       uses: actions/setup-java@v3
       with:
@@ -58,12 +65,12 @@ jobs:
           kotlinc "$file" -include-runtime -d "build/kotlin/$(basename "$file" .kt).jar"
         done
 
-    # 결과 압축
+    # 압축
     - name: Zip build results
       run: |
         zip -r build_outputs.zip build/
 
-    # 릴리즈 생성
+    # 릴리즈
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:

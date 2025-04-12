@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,18 +15,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # C# 빌드
+    # C# 빌드 (.NET SDK + 기존 csproj 빌드)
     - name: Set up .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '7.0.x'
 
-    - name: Build C# files
+    - name: Build C# project
       run: |
-        mkdir -p build/csharp
-        for file in csharp/*.cs; do
-          csc "$file" -out:"build/csharp/$(basename "$file" .cs).exe"
-        done
+        cd csharp
+        dotnet restore || true  # NuGet 안 쓰면 무시해도 됨
+        dotnet build -o ../build/csharp
 
     # C++ 빌드
     - name: Build C++ files
@@ -36,16 +36,16 @@ jobs:
           g++ "$file" -o "build/cpp/$(basename "$file" .cpp)"
         done
 
-    # Kotlin 빌드 준비 (JDK 설치 → Kotlin 설치)
-    - name: Set up Java (필수 for Kotlin)
+    # Kotlin 설치
+    - name: Set up Java for Kotlin
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Install Kotlin Compiler (via SDKMAN)
+    - name: Install Kotlin compiler
       run: |
-        curl -s "https://get.sdkman.io" | bash
+        curl -s https://get.sdkman.io | bash
         source "$HOME/.sdkman/bin/sdkman-init.sh"
         sdk install kotlin
         echo 'export PATH=$PATH:$HOME/.sdkman/candidates/kotlin/current/bin' >> $GITHUB_ENV
@@ -63,7 +63,7 @@ jobs:
       run: |
         zip -r build_outputs.zip build/
 
-    # 자동 릴리즈 생성
+    # 릴리즈 생성
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:

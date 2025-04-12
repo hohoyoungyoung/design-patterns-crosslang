@@ -14,6 +14,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # C# 빌드
     - name: Set up .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -26,6 +27,7 @@ jobs:
           csc "$file" -out:"build/csharp/$(basename "$file" .cs).exe"
         done
 
+    # C++ 빌드
     - name: Build C++ files
       run: |
         sudo apt-get update && sudo apt-get install -y g++
@@ -34,22 +36,34 @@ jobs:
           g++ "$file" -o "build/cpp/$(basename "$file" .cpp)"
         done
 
-    - name: Set up Kotlin
-      uses: fwcd/setup-kotlin@v1
+    # Kotlin 빌드 준비 (JDK 설치 → Kotlin 설치)
+    - name: Set up Java (필수 for Kotlin)
+      uses: actions/setup-java@v3
       with:
-        kotlin-version: '1.8.0'
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install Kotlin Compiler (via SDKMAN)
+      run: |
+        curl -s "https://get.sdkman.io" | bash
+        source "$HOME/.sdkman/bin/sdkman-init.sh"
+        sdk install kotlin
+        echo 'export PATH=$PATH:$HOME/.sdkman/candidates/kotlin/current/bin' >> $GITHUB_ENV
 
     - name: Build Kotlin files
       run: |
+        source "$HOME/.sdkman/bin/sdkman-init.sh"
         mkdir -p build/kotlin
         for file in kotlin/*.kt; do
           kotlinc "$file" -include-runtime -d "build/kotlin/$(basename "$file" .kt).jar"
         done
 
+    # 결과 압축
     - name: Zip build results
       run: |
         zip -r build_outputs.zip build/
 
+    # 자동 릴리즈 생성
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:

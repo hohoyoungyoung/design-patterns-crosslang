@@ -1,0 +1,60 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0.x'
+
+    - name: Build C# files
+      run: |
+        mkdir -p build/csharp
+        for file in csharp/*.cs; do
+          csc "$file" -out:"build/csharp/$(basename "$file" .cs).exe"
+        done
+
+    - name: Build C++ files
+      run: |
+        sudo apt-get update && sudo apt-get install -y g++
+        mkdir -p build/cpp
+        for file in cpp/*.cpp; do
+          g++ "$file" -o "build/cpp/$(basename "$file" .cpp)"
+        done
+
+    - name: Set up Kotlin
+      uses: fwcd/setup-kotlin@v1
+      with:
+        kotlin-version: '1.8.0'
+
+    - name: Build Kotlin files
+      run: |
+        mkdir -p build/kotlin
+        for file in kotlin/*.kt; do
+          kotlinc "$file" -include-runtime -d "build/kotlin/$(basename "$file" .kt).jar"
+        done
+
+    - name: Zip build results
+      run: |
+        zip -r build_outputs.zip build/
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: "Release ${{ github.run_number }}"
+        tag_name: "v${{ github.run_number }}"
+        files: build_outputs.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,7 +15,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # ✅ C# 빌드 - static void Main 있는 파일만 dotnet으로 컴파일
+    # ✅ C# 빌드
     - name: Set up .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -38,13 +38,17 @@ jobs:
           fi
         done
 
-    # ✅ C++ 빌드
+    # ✅ C++ 빌드 (Eigen 설치 포함)
+    - name: Install dependencies for C++
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y g++ libeigen3-dev
+
     - name: Build C++ files
       run: |
-        sudo apt-get update && sudo apt-get install -y g++
         mkdir -p build/cpp
         for file in cpp/*.cpp; do
-          g++ "$file" -o "build/cpp/$(basename "$file" .cpp)"
+          g++ "$file" -I /usr/include/eigen3 -o "build/cpp/$(basename "$file" .cpp)"
         done
 
     # ✅ Kotlin 설치

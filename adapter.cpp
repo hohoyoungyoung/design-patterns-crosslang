@@ -1,3 +1,5 @@
+// Adapter Pattern
+// 어댑터 패턴은 서로 다른 인터페이스를 가진 클래스들이 함께 작업할 수 있도록 도와주는 패턴입니다.
 #include <iostream>
 #include <string>
 
